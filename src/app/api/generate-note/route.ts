@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+export const dynamic = 'force-dynamic'
 
 const SYSTEM_PROMPT = `Tu es un assistant spécialisé pour les psychothérapeutes francophones.
 À partir de la transcription d'une séance de thérapie, génère une note clinique structurée et professionnelle en français.
@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing noteId or transcript' }, { status: 400 })
   }
 
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1500,
@@ -42,7 +44,7 @@ export async function POST(request: NextRequest) {
 
   await supabase
     .from('session_notes')
-    .update({ note_content: noteContent, status: 'ready' })
+    .update({ note_content: noteContent })
     .eq('id', noteId)
     .eq('therapist_id', user.id)
 

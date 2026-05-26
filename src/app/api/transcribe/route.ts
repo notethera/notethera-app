@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 
-if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_openai_api_key') {
-  console.warn('[transcribe] OPENAI_API_KEY not configured — transcription will return 503')
-}
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -14,14 +10,15 @@ export async function POST(request: NextRequest) {
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_openai_api_key') {
+  const key = process.env.OPENAI_API_KEY
+  if (!key || key === 'your_openai_api_key') {
     return NextResponse.json(
       { error: 'La transcription audio n\'est pas disponible. Veuillez configurer une clé OpenAI pour utiliser cette fonctionnalité.' },
       { status: 503 }
     )
   }
 
-  console.log('[transcribe] OPENAI_API_KEY present:', !!process.env.OPENAI_API_KEY)
+  const openai = new OpenAI({ apiKey: key })
 
   const formData = await request.formData()
   const audioFile = formData.get('audio') as File
@@ -30,8 +27,6 @@ export async function POST(request: NextRequest) {
   if (!audioFile || !noteId) {
     return NextResponse.json({ error: 'Missing audio or noteId' }, { status: 400 })
   }
-
-  console.log('[transcribe] file name:', audioFile.name, 'size:', audioFile.size, 'type:', audioFile.type)
 
   try {
     const transcription = await openai.audio.transcriptions.create({
@@ -47,7 +42,6 @@ export async function POST(request: NextRequest) {
       .eq('id', noteId)
       .eq('therapist_id', user.id)
 
-    console.log('[transcribe] success, length:', String(transcription).length)
     return NextResponse.json({ transcript: transcription })
   } catch (err) {
     console.error('[transcribe] OpenAI error:', err)
