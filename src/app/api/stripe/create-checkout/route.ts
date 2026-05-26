@@ -29,12 +29,18 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
   }
 
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https'
+  const host = request.headers.get('host') ?? ''
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.startsWith('http')
+    ? process.env.NEXT_PUBLIC_APP_URL
+    : `${proto}://${host}`
+
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: 'subscription',
     line_items: [{ price: process.env.STRIPE_PRICE_ID_PRO!, quantity: 1 }],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgrade=success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
+    success_url: `${baseUrl}/dashboard?upgrade=success`,
+    cancel_url: `${baseUrl}/billing`,
     subscription_data: {
       trial_period_days: 14,
       metadata: { supabase_user_id: user.id },
