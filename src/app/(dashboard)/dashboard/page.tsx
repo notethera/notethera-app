@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate } from '@/lib/utils'
 import Link from 'next/link'
-import { Users, FileText, Plus } from 'lucide-react'
+import { Users, FileText, Plus, Clock } from 'lucide-react'
 import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
 
 export default async function DashboardPage() {
@@ -24,6 +24,12 @@ export default async function DashboardPage() {
   ])
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'Docteur'
+  const savedMinutes = (generatedNoteCount ?? 0) * 20
+  const savedTime = savedMinutes < 60
+    ? `${savedMinutes} min`
+    : savedMinutes % 60 === 0
+      ? `${savedMinutes / 60}h`
+      : `${Math.floor(savedMinutes / 60)}h${String(savedMinutes % 60).padStart(2, '0')}`
 
   return (
     <div className="p-8">
@@ -39,7 +45,7 @@ export default async function DashboardPage() {
         totalNotes={noteCount ?? 0}
       />
 
-      <div className="mb-8 grid grid-cols-2 gap-4">
+      <div className="mb-8 grid grid-cols-3 gap-4">
         <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50">
@@ -58,7 +64,18 @@ export default async function DashboardPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{noteCount ?? 0}</p>
-              <p className="text-sm text-gray-500">Notes récentes</p>
+              <p className="text-sm text-gray-500">Notes de séance</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50">
+              <Clock className="h-5 w-5 text-teal-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{savedTime}</p>
+              <p className="text-sm text-gray-500">Temps économisé</p>
             </div>
           </div>
         </div>
@@ -80,23 +97,30 @@ export default async function DashboardPage() {
             Aucune note pour le moment. Créez votre première note de séance.
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100">
-            {recentNotes?.map((note) => {
-              const n = note as unknown as { id: string; session_date: string; title: string | null; patient: { alias: string } | null }
-              return (
-                <li key={n.id}>
-                  <Link href={`/notes/${n.id}`} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-gray-900">
-                        {n.title ?? n.patient?.alias}
-                      </p>
-                      <p className="text-xs text-gray-500">{n.patient?.alias} · {formatDate(n.session_date)}</p>
-                    </div>
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
+          <>
+            <ul className="divide-y divide-gray-100">
+              {recentNotes?.map((note) => {
+                const n = note as unknown as { id: string; session_date: string; title: string | null; patient: { alias: string } | null }
+                return (
+                  <li key={n.id}>
+                    <Link href={`/notes/${n.id}`} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-gray-900">
+                          {n.title ?? n.patient?.alias}
+                        </p>
+                        <p className="text-xs text-gray-500">{n.patient?.alias} · {formatDate(n.session_date)}</p>
+                      </div>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+            <div className="border-t border-gray-100 px-6 py-3">
+              <Link href="/notes" className="text-sm font-medium text-teal-600 hover:text-teal-700">
+                Voir toutes les notes →
+              </Link>
+            </div>
+          </>
         )}
       </div>
     </div>
