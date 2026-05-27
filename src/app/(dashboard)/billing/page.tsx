@@ -1,50 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
-import { getStripe } from '@/lib/stripe'
-import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
-import { Button } from '@/components/ui/button'
+import { CheckoutButton } from './checkout-button'
 import { CheckCircle2, AlertCircle } from 'lucide-react'
-
-async function startCheckoutAction() {
-  'use server'
-  const stripe = getStripe()
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('stripe_customer_id, email, full_name')
-    .eq('id', user.id)
-    .single()
-
-  let customerId = profile?.stripe_customer_id
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: profile?.email ?? user.email!,
-      name: profile?.full_name ?? undefined,
-      metadata: { supabase_user_id: user.id },
-    })
-    customerId = customer.id
-    await supabase.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
-  }
-
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    mode: 'subscription',
-    line_items: [{ price: process.env.STRIPE_PRICE_ID_PRO!, quantity: 1 }],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL || `https://${(await headers()).get('host')}`}/dashboard?upgrade=success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || `https://${(await headers()).get('host')}`}/billing`,
-    subscription_data: {
-      trial_period_days: 14,
-      metadata: { supabase_user_id: user.id },
-    },
-  })
-
-  if (session.url) redirect(session.url)
-}
 
 export default async function BillingPage() {
   const supabase = await createClient()
@@ -85,14 +43,7 @@ export default async function BillingPage() {
           </div>
         </div>
 
-        {!isActive && (
-          <form action={startCheckoutAction}>
-            <Button type="submit" className="w-full">
-              S&apos;abonner – 49 €/mois
-            </Button>
-            <p className="mt-2 text-center text-xs text-gray-500">14 jours gratuits · Annulation à tout moment</p>
-          </form>
-        )}
+        {!isActive && <CheckoutButton />}
 
         {isActive && (
           <p className="text-sm text-gray-600">
