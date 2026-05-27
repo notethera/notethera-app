@@ -25,8 +25,8 @@ export function AudioRecorder({ noteId, onTranscribed }: AudioRecorderProps) {
     mediaRecorderRef.current = recorder
     chunksRef.current = []
 
-    recorder.ondataavailable = (e) => chunksRef.current.push(e.data)
-    recorder.start(250)
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+    recorder.start()
     setRecording(true)
     setDuration(0)
     timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000)
@@ -51,7 +51,8 @@ export function AudioRecorder({ noteId, onTranscribed }: AudioRecorderProps) {
     setError(null)
     try {
       const form = new FormData()
-      form.append('audio', audio, 'session.webm')
+      const filename = audio instanceof File ? audio.name : `session.${audio.type.split(';')[0].split('/')[1] || 'webm'}`
+      form.append('audio', audio, filename)
       form.append('noteId', noteId)
 
       const res = await fetch('/api/transcribe', { method: 'POST', body: form })
