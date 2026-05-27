@@ -35,6 +35,7 @@ function InlineBold({ text }: { text: string }) {
 function NotesPageInner() {
   const [notes, setNotes] = useState<Array<{
     id: string; session_date: string;
+    patient_id: string;
     note_content: string | null;
     title: string | null;
     patient: { alias: string } | null
@@ -45,6 +46,7 @@ function NotesPageInner() {
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0])
   const [userId, setUserId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [filterPatient, setFilterPatient] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
   const preselectedPatient = searchParams.get('patient')
@@ -59,7 +61,7 @@ function NotesPageInner() {
       supabase.auth.getUser(),
       supabase
         .from('session_notes')
-        .select('id, session_date, note_content, title, patient:patients(alias)')
+        .select('id, session_date, patient_id, note_content, title, patient:patients(alias)')
         .order('created_at', { ascending: false }),
       supabase.from('patients').select('*').order('alias'),
     ])
@@ -84,6 +86,8 @@ function NotesPageInner() {
   }
 
   const filtered = notes.filter((note) => {
+    if (filterPatient && note.patient_id !== filterPatient) return false
+    if (!search) return true
     const q = search.toLowerCase()
     return (
       note.patient?.alias?.toLowerCase().includes(q) ||
@@ -97,7 +101,7 @@ function NotesPageInner() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Notes de séance</h1>
           <p className="mt-1 text-sm text-gray-500">
-            {search ? `${filtered.length} / ${notes.length}` : notes.length} note{notes.length > 1 ? 's' : ''}
+            {(search || filterPatient) ? `${filtered.length} / ${notes.length}` : notes.length} note{notes.length > 1 ? 's' : ''}
           </p>
         </div>
       </div>
@@ -132,15 +136,27 @@ function NotesPageInner() {
         </Button>
       </form>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Rechercher par patient ou titre..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-        />
+      <div className="mb-4 flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Rechercher par patient ou titre..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+        </div>
+        <select
+          value={filterPatient}
+          onChange={(e) => setFilterPatient(e.target.value)}
+          className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        >
+          <option value="">Tous les patients</option>
+          {patients.map((p) => (
+            <option key={p.id} value={p.id}>{p.alias}</option>
+          ))}
+        </select>
       </div>
 
       <div className="rounded-xl bg-white border border-gray-100 shadow-sm">
@@ -150,7 +166,7 @@ function NotesPageInner() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="px-6 py-12 text-center text-sm text-gray-500">
-            Aucune note ne correspond à « {search} ».
+            Aucune note ne correspond à votre recherche.
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
