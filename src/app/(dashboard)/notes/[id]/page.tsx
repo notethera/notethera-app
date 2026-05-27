@@ -5,9 +5,11 @@ import { createClient } from '@/lib/supabase/client'
 import { AudioRecorder } from '@/components/notes/audio-recorder'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
-import { ArrowLeft, Save, Loader2, Download } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Download, Pencil, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 function markdownToHtml(text: string): string {
   return text
@@ -66,6 +68,7 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
     patient: { alias: string } | null
   } | null>(null)
   const [noteContent, setNoteContent] = useState('')
+  const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -80,7 +83,9 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
       console.log('[note] data:', data, 'error:', error)
       if (!data) { setLoading(false); return }
       setNote(data as unknown as typeof note)
-      setNoteContent((data as unknown as Record<string, unknown>).note_content as string ?? '')
+      const content = (data as unknown as Record<string, unknown>).note_content as string ?? ''
+      setNoteContent(content)
+      setEditing(!content)
       setLoading(false)
     }
     load()
@@ -89,6 +94,7 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
   const handleTranscribed = (content: string) => {
     setNoteContent(content)
     setNote((prev) => prev ? { ...prev, note_content: content } : prev)
+    setEditing(false)
   }
 
   const handleSave = async () => {
@@ -98,15 +104,12 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
       .update({ note_content: noteContent })
       .eq('id', params.id)
     setSaving(false)
+    setEditing(false)
   }
 
   const handleExportPDF = () => {
     if (!note) return
-    exportToPDF(
-      note.patient?.alias ?? 'Patient',
-      formatDate(note.session_date),
-      noteContent,
-    )
+    exportToPDF(note.patient?.alias ?? 'Patient', formatDate(note.session_date), noteContent)
   }
 
   if (loading) {
@@ -141,10 +144,22 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
               Exporter en PDF
             </button>
           )}
-          <Button onClick={handleSave} loading={saving} variant="secondary">
-            <Save className="mr-2 h-4 w-4" />
-            Sauvegarder
-          </Button>
+          {editing ? (
+            <Button onClick={handleSave} loading={saving} variant="secondary">
+              <Save className="mr-2 h-4 w-4" />
+              Sauvegarder
+            </Button>
+          ) : (
+            noteContent && (
+              <button
+                onClick={() => setEditing(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                <Pencil className="h-4 w-4" />
+                Modifier
+              </button>
+            )
+          )}
         </div>
       </div>
 
@@ -165,15 +180,37 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
       )}
 
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
           <h2 className="text-sm font-semibold text-gray-700">Note clinique</h2>
+          {noteContent && (
+            <button
+              onClick={() => setEditing((e) => !e)}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-400 transition-colors hover:text-gray-700"
+            >
+              {editing ? <><Eye className="h-3.5 w-3.5" /> Aperçu</> : <><Pencil className="h-3.5 w-3.5" /> Modifier</>}
+            </button>
+          )}
         </div>
-        <textarea
-          value={noteContent}
-          onChange={(e) => setNoteContent(e.target.value)}
-          placeholder="La note clinique apparaîtra ici après transcription. Vous pouvez aussi la rédiger manuellement."
-          className="w-full min-h-[400px] resize-none rounded-b-xl p-4 text-sm text-gray-800 focus:outline-none"
-        />
+
+        {editing ? (
+          <textarea
+            value={noteContent}
+            onChange={(e) => setNoteContent(e.target.value)}
+            placeholder="La note clinique apparaîtra ici après transcription. Vous pouvez aussi la rédiger manuellement."
+            className="w-full min-h-[400px] resize-none rounded-b-xl p-4 text-sm text-gray-800 focus:outline-none"
+            autoFocus
+          />
+        ) : noteContent ? (
+          <div className="prose prose-sm prose-gray max-w-none p-6 [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_strong]:font-semibold [&_ol]:list-decimal [&_ul]:list-disc [&_li]:my-0.5">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {noteContent}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          <p className="p-4 text-sm text-gray-400">
+            La note clinique apparaîtra ici après transcription. Vous pouvez aussi la rédiger manuellement.
+          </p>
+        )}
       </div>
     </div>
   )
