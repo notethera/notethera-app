@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils'
 import { LayoutDashboard, Users, FileText, Settings, CreditCard, LogOut, Menu, X, ChevronDown, UserCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
+const TRIAL_DAYS = 14
+
 const navItems = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/patients', label: 'Patients', icon: Users },
@@ -43,22 +45,45 @@ interface UserInfo {
   email: string
   firstName: string
   initial: string
+  trialDaysLeft: number | null
 }
 
 function useUserInfo(supabase: ReturnType<typeof createClient>) {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) return
-      const fullName = data.user.user_metadata?.full_name as string | undefined
-      const firstName = fullName?.split(' ')[0] ?? data.user.email?.split('@')[0] ?? ''
+    async function load() {
+      const { data: authData } = await supabase.auth.getUser()
+      if (!authData.user) return
+
+      const fullName = authData.user.user_metadata?.full_name as string | undefined
+      const firstName = fullName?.split(' ')[0] ?? authData.user.email?.split('@')[0] ?? ''
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_status')
+        .eq('id', authData.user.id)
+        .single()
+
+      const isActive = profile?.subscription_status === 'active'
+
+      let trialDaysLeft: number | null = null
+      if (!isActive) {
+        const createdAt = new Date(authData.user.created_at)
+        const daysSince = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
+        trialDaysLeft = Math.max(0, TRIAL_DAYS - daysSince)
+      }
+
       setUserInfo({
-        email: data.user.email ?? '',
+        email: authData.user.email ?? '',
         firstName,
         initial: firstName[0]?.toUpperCase() ?? '?',
+        trialDaysLeft,
       })
-    })
+    }
+    load()
   }, [])
+
   return userInfo
 }
 
@@ -67,6 +92,17 @@ function UserAvatar({ initial }: { initial: string }) {
     <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-teal-600 text-sm font-semibold text-white">
       {initial}
     </div>
+  )
+}
+
+function TrialBadge({ daysLeft }: { daysLeft: number }) {
+  const urgent = daysLeft <= 3
+  return (
+    <p className={cn('truncate text-xs font-medium', urgent ? 'text-red-500' : 'text-teal-600')}>
+      {daysLeft === 0
+        ? 'Essai expiré'
+        : `${daysLeft} jour${daysLeft > 1 ? 's' : ''} d'essai restant${daysLeft > 1 ? 's' : ''}`}
+    </p>
   )
 }
 
@@ -95,6 +131,9 @@ function UserMenu({ supabase, onSignOut }: { supabase: ReturnType<typeof createC
         <div className="min-w-0 flex-1 text-left">
           <p className="truncate text-sm font-medium text-gray-900">{userInfo?.firstName ?? '…'}</p>
           <p className="truncate text-xs text-gray-500">{userInfo?.email ?? ''}</p>
+          {userInfo?.trialDaysLeft !== null && userInfo?.trialDaysLeft !== undefined && (
+            <TrialBadge daysLeft={userInfo.trialDaysLeft} />
+          )}
         </div>
         <ChevronDown className={cn('h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-150', open && 'rotate-180')} />
       </button>
@@ -103,6 +142,9 @@ function UserMenu({ supabase, onSignOut }: { supabase: ReturnType<typeof createC
         <div className="absolute bottom-full left-4 right-4 mb-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
           <div className="border-b border-gray-100 px-4 py-3">
             <p className="truncate text-xs font-medium text-gray-900">{userInfo?.email}</p>
+            {userInfo?.trialDaysLeft !== null && userInfo?.trialDaysLeft !== undefined && (
+              <TrialBadge daysLeft={userInfo.trialDaysLeft} />
+            )}
           </div>
           <button
             onClick={() => { setOpen(false); onSignOut() }}
@@ -151,9 +193,12 @@ function MobileUserMenu({ supabase, onSignOut, onClose }: { supabase: ReturnType
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg z-50">
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
           <div className="border-b border-gray-100 px-4 py-3">
             <p className="truncate text-xs font-medium text-gray-900">{userInfo?.email}</p>
+            {userInfo?.trialDaysLeft !== null && userInfo?.trialDaysLeft !== undefined && (
+              <TrialBadge daysLeft={userInfo.trialDaysLeft} />
+            )}
           </div>
           <button
             onClick={() => { setOpen(false); onClose(); onSignOut() }}
