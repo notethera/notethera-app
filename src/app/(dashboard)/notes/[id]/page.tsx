@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { AudioRecorder } from '@/components/notes/audio-recorder'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
-import { ArrowLeft, Save, Loader2, Download, Pencil, Eye } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Download, Pencil, Eye, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
@@ -216,6 +216,11 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
             La note clinique apparaîtra ici après transcription. Vous pouvez aussi la rédiger manuellement.
           </p>
         )}
+      </div>
+
+      <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-gray-400">
+        <Lock className="h-3 w-3" />
+        <span>Données sécurisées · Conforme RGPD</span>
       </div>
     </div>
   )
