@@ -25,11 +25,8 @@ export function RemindersToggle({ userId, enabled }: { userId: string; enabled: 
       aria-label={isEnabled ? 'Désactiver les rappels' : 'Activer les rappels'}
       className="flex shrink-0 items-center hover:opacity-80 transition-opacity disabled:opacity-50"
     >
-      <div className={`relative h-5 w-9 rounded-full transition-colors ${isEnabled ? 'bg-teal-600' : 'bg-gray-300'}`}>
-        <span
-          className="absolute top-0.5 left-0 h-4 w-4 rounded-full bg-white transition-transform duration-200"
-          style={{ transform: `translateX(${isEnabled ? '18px' : '2px'})` }}
-        />
+      <div style={{ width: 44, height: 24, borderRadius: 12, background: isEnabled ? '#0d9488' : '#d1d5db', display: 'flex', alignItems: 'center', transition: 'background 0.2s', flexShrink: 0 }}>
+        <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', margin: 2, transform: isEnabled ? 'translateX(20px)' : 'translateX(0)', transition: 'transform 0.2s' }} />
       </div>
     </button>
   )
