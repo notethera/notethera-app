@@ -27,10 +27,10 @@ function NavLinks({ onClick }: { onClick?: () => void }) {
           href={href}
           onClick={onClick}
           className={cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
             pathname === href || pathname.startsWith(href + '/')
-              ? 'bg-teal-50 text-teal-700 font-semibold'
-              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              ? 'bg-teal-50 text-teal-700 font-bold'
+              : 'font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900'
           )}
         >
           <Icon className="h-4 w-4 shrink-0" />
