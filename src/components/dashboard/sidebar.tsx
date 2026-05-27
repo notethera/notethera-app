@@ -21,22 +21,26 @@ function NavLinks({ onClick }: { onClick?: () => void }) {
   const pathname = usePathname()
   return (
     <nav className="flex flex-1 flex-col gap-1 p-4">
-      {navItems.map(({ href, label, icon: Icon }) => (
-        <Link
-          key={href}
-          href={href}
-          onClick={onClick}
-          className={cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
-            pathname === href || pathname.startsWith(href + '/')
-              ? 'bg-teal-50 text-teal-700 font-bold'
-              : 'font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-          )}
-        >
-          <Icon className="h-4 w-4 shrink-0" />
-          {label}
-        </Link>
-      ))}
+      {navItems.map(({ href, label, icon: Icon }) => {
+        const isActive = pathname === href || pathname.startsWith(href + '/')
+        return (
+          <Link
+            key={href}
+            href={href}
+            onClick={onClick}
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+              isActive
+                ? 'bg-teal-50 text-teal-700'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+            )}
+            style={{ fontWeight: isActive ? 700 : 500 }}
+          >
+            <Icon className="h-4 w-4 shrink-0" />
+            {label}
+          </Link>
+        )
+      })}
     </nav>
   )
 }
