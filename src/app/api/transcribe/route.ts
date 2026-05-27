@@ -11,9 +11,11 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const key = process.env.OPENAI_API_KEY
+  // DEBUG — remove after confirming key is read in production
+  console.log('[transcribe] key status:', key ? `set (${key.slice(0, 8)}…)` : 'MISSING')
   if (!key || key === 'your_openai_api_key') {
     return NextResponse.json(
-      { error: 'La transcription audio n\'est pas disponible. Veuillez configurer une clé OpenAI pour utiliser cette fonctionnalité.' },
+      { error: 'La transcription audio n\'est pas disponible. Veuillez configurer une clé OpenAI pour utiliser cette fonctionnalité.', debug_key_present: !!key },
       { status: 503 }
     )
   }
