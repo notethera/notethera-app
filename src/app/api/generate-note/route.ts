@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing noteId or transcript' }, { status: 400 })
   }
 
+  console.log('[generate-note] transcript:', transcript)
+
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   const message = await anthropic.messages.create({
