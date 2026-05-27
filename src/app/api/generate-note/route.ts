@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-const SYSTEM_PROMPT = `Tu es un assistant spécialisé pour les psychothérapeutes francophones.
+const NOTE_SYSTEM_PROMPT = `Tu es un assistant spécialisé pour les psychothérapeutes francophones.
 À partir de la transcription d'une séance de thérapie, génère une note clinique structurée et professionnelle en français.
 
 Règle absolue : tu génères TOUJOURS une note, quelle que soit la longueur ou la qualité de la transcription. Si le contenu est limité, incomplet ou peu clair, utilise ce qui est disponible et indique « Information limitée » pour les sections sans données suffisantes. Ne refuse jamais de générer une note.
@@ -33,24 +33,53 @@ export async function POST(request: NextRequest) {
 
   console.log('[generate-note] transcript:', transcript)
 
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  // Get patient_id to count sessions
+  const { data: noteData } = await supabase
+    .from('session_notes')
+    .select('patient_id')
+    .eq('id', noteId)
+    .single()
 
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1500,
-    system: SYSTEM_PROMPT,
-    messages: [
-      { role: 'user', content: `Voici la transcription de la séance :\n\n${transcript}` },
-    ],
-  })
+  const { count: sessionCount } = await supabase
+    .from('session_notes')
+    .select('*', { count: 'exact', head: true })
+    .eq('patient_id', noteData?.patient_id)
+
+  const sessionNumber = sessionCount ?? 1
+
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const transcriptPreview = transcript.slice(0, 800)
+
+  // Generate note content and title in parallel
+  const [message, titleMessage] = await Promise.all([
+    anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      system: NOTE_SYSTEM_PROMPT,
+      messages: [
+        { role: 'user', content: `Voici la transcription de la séance :\n\n${transcript}` },
+      ],
+    }),
+    anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 30,
+      messages: [{
+        role: 'user',
+        content: `À partir de cette transcription de séance de thérapie, génère un titre court en français (3-5 mots) qui résume le thème principal, au format "Thème principal - Séance ${sessionNumber}". Réponds UNIQUEMENT avec le titre, sans guillemets ni ponctuation finale.\n\nTranscription : ${transcriptPreview}`,
+      }],
+    }),
+  ])
 
   const noteContent = message.content[0].type === 'text' ? message.content[0].text : ''
+  const title = titleMessage.content[0].type === 'text'
+    ? titleMessage.content[0].text.trim()
+    : `Séance ${sessionNumber}`
 
   await supabase
     .from('session_notes')
-    .update({ note_content: noteContent })
+    .update({ note_content: noteContent, title })
     .eq('id', noteId)
     .eq('therapist_id', user.id)
 
-  return NextResponse.json({ noteContent })
+  return NextResponse.json({ noteContent, title })
 }

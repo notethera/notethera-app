@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 
 interface AudioRecorderProps {
   noteId: string
-  onTranscribed: (transcript: string) => void
+  onTranscribed: (transcript: string, title?: string) => void
 }
 
 export function AudioRecorder({ noteId, onTranscribed }: AudioRecorderProps) {
@@ -73,7 +73,7 @@ export function AudioRecorder({ noteId, onTranscribed }: AudioRecorderProps) {
         return
       }
 
-      onTranscribed(noteData.noteContent)
+      onTranscribed(noteData.noteContent, noteData.title ?? undefined)
     } catch {
       setError('Une erreur inattendue est survenue. Vérifiez votre connexion.')
     } finally {

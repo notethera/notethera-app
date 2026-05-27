@@ -32,6 +32,7 @@ create table public.session_notes (
   session_date date not null default current_date,
   transcript text,
   note_content text,
+  title text,
   created_at timestamptz default now() not null
 );
 

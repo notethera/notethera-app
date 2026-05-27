@@ -65,9 +65,11 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
   const [note, setNote] = useState<{
     id: string; session_date: string;
     transcript: string | null; note_content: string | null;
+    title: string | null;
     patient: { alias: string } | null
   } | null>(null)
   const [noteContent, setNoteContent] = useState('')
+  const [noteTitle, setNoteTitle] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -82,18 +84,21 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
         .single()
       console.log('[note] data:', data, 'error:', error)
       if (!data) { setLoading(false); return }
+      const d = data as unknown as Record<string, unknown>
       setNote(data as unknown as typeof note)
-      const content = (data as unknown as Record<string, unknown>).note_content as string ?? ''
+      const content = d.note_content as string ?? ''
       setNoteContent(content)
+      setNoteTitle(d.title as string | null ?? null)
       setEditing(!content)
       setLoading(false)
     }
     load()
   }, [params.id])
 
-  const handleTranscribed = (content: string) => {
+  const handleTranscribed = (content: string, title?: string) => {
     setNoteContent(content)
-    setNote((prev) => prev ? { ...prev, note_content: content } : prev)
+    setNoteTitle(title ?? null)
+    setNote((prev) => prev ? { ...prev, note_content: content, title: title ?? null } : prev)
     setEditing(false)
   }
 
@@ -131,8 +136,8 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
 
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{note.patient?.alias}</h1>
-          <p className="mt-1 text-sm text-gray-500">Séance du {formatDate(note.session_date)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{noteTitle ?? note.patient?.alias}</h1>
+          <p className="mt-1 text-sm text-gray-500">{note.patient?.alias} · Séance du {formatDate(note.session_date)}</p>
         </div>
         <div className="flex items-center gap-2">
           {noteContent && (

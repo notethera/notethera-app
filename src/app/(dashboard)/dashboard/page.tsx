@@ -15,7 +15,7 @@ export default async function DashboardPage() {
     supabase.from('patients').select('*', { count: 'exact', head: true }).eq('therapist_id', user!.id),
     supabase
       .from('session_notes')
-      .select('id, session_date, patient:patients(alias)')
+      .select('id, session_date, title, patient:patients(alias)')
       .eq('therapist_id', user!.id)
       .order('created_at', { ascending: false })
       .limit(5),
@@ -81,18 +81,21 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {recentNotes?.map((note) => (
-              <li key={note.id}>
-                <Link href={`/notes/${note.id}`} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {(note.patient as unknown as { alias: string } | null)?.alias}
-                    </p>
-                    <p className="text-xs text-gray-500">{formatDate(note.session_date)}</p>
-                  </div>
-                </Link>
-              </li>
-            ))}
+            {recentNotes?.map((note) => {
+              const n = note as unknown as { id: string; session_date: string; title: string | null; patient: { alias: string } | null }
+              return (
+                <li key={n.id}>
+                  <Link href={`/notes/${n.id}`} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-gray-900">
+                        {n.title ?? n.patient?.alias}
+                      </p>
+                      <p className="text-xs text-gray-500">{n.patient?.alias} · {formatDate(n.session_date)}</p>
+                    </div>
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

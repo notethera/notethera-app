@@ -29,5 +29,6 @@ export interface SessionNote {
   session_date: string
   transcript: string | null
   note_content: string | null
+  title: string | null
   created_at: string
 }

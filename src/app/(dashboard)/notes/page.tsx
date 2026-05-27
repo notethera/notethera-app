@@ -36,6 +36,7 @@ function NotesPageInner() {
   const [notes, setNotes] = useState<Array<{
     id: string; session_date: string;
     note_content: string | null;
+    title: string | null;
     patient: { alias: string } | null
   }>>([])
   const [patients, setPatients] = useState<Patient[]>([])
@@ -57,7 +58,7 @@ function NotesPageInner() {
       supabase.auth.getUser(),
       supabase
         .from('session_notes')
-        .select('id, session_date, note_content, patient:patients(alias)')
+        .select('id, session_date, note_content, title, patient:patients(alias)')
         .order('created_at', { ascending: false }),
       supabase.from('patients').select('*').order('alias'),
     ])
@@ -128,14 +129,16 @@ function NotesPageInner() {
         ) : (
           <ul className="divide-y divide-gray-100">
             {notes.map((note) => {
-              const snippet = extractResumeSnippet(note.note_content)
+              const snippet = !note.title ? extractResumeSnippet(note.note_content) : null
               return (
                 <li key={note.id}>
                   <Link href={`/notes/${note.id}`} className="flex items-center gap-3 px-6 py-4 hover:bg-gray-50">
                     <FileText className="h-4 w-4 flex-shrink-0 text-gray-400" />
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{note.patient?.alias}</p>
-                      <p className="text-xs text-gray-500">{formatDate(note.session_date)}</p>
+                      <p className="truncate text-sm font-semibold text-gray-900">
+                        {note.title ?? note.patient?.alias}
+                      </p>
+                      <p className="text-xs text-gray-500">{note.patient?.alias} · {formatDate(note.session_date)}</p>
                       {snippet && (
                         <p className="mt-0.5 truncate text-xs text-gray-500">
                           <InlineBold text={snippet} />
