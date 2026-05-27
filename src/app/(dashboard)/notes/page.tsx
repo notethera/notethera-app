@@ -35,10 +35,9 @@ function InlineBold({ text }: { text: string }) {
 function NotesPageInner() {
   const [notes, setNotes] = useState<Array<{
     id: string; session_date: string;
-    patient_id: string;
     note_content: string | null;
     title: string | null;
-    patient: { alias: string } | null
+    patient: { id: string; alias: string } | null
   }>>([])
   const [patients, setPatients] = useState<Patient[]>([])
   const [creating, setCreating] = useState(false)
@@ -61,7 +60,7 @@ function NotesPageInner() {
       supabase.auth.getUser(),
       supabase
         .from('session_notes')
-        .select('id, session_date, patient_id, note_content, title, patient:patients(alias)')
+        .select('id, session_date, note_content, title, patient:patients(id, alias)')
         .order('created_at', { ascending: false }),
       supabase.from('patients').select('*').order('alias'),
     ])
@@ -86,7 +85,7 @@ function NotesPageInner() {
   }
 
   const filtered = notes.filter((note) => {
-    if (filterPatient && note.patient_id !== filterPatient) return false
+    if (filterPatient && note.patient?.id !== filterPatient) return false
     if (!search) return true
     const q = search.toLowerCase()
     return (
