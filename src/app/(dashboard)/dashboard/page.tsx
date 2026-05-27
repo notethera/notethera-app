@@ -4,12 +4,13 @@ import { createClient } from '@/lib/supabase/server'
 import { formatDate } from '@/lib/utils'
 import Link from 'next/link'
 import { Users, FileText, Plus } from 'lucide-react'
+import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: profile }, { count: patientCount }, { data: recentNotes }] = await Promise.all([
+  const [{ data: profile }, { count: patientCount }, { data: recentNotes }, { count: noteCount }, { count: generatedNoteCount }] = await Promise.all([
     supabase.from('profiles').select('full_name, subscription_status').eq('id', user!.id).single(),
     supabase.from('patients').select('*', { count: 'exact', head: true }).eq('therapist_id', user!.id),
     supabase
@@ -18,6 +19,8 @@ export default async function DashboardPage() {
       .eq('therapist_id', user!.id)
       .order('created_at', { ascending: false })
       .limit(5),
+    supabase.from('session_notes').select('*', { count: 'exact', head: true }).eq('therapist_id', user!.id),
+    supabase.from('session_notes').select('*', { count: 'exact', head: true }).eq('therapist_id', user!.id).not('note_content', 'is', null),
   ])
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'Docteur'
@@ -28,6 +31,13 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-bold text-gray-900">Bonjour, {firstName}</h1>
         <p className="mt-1 text-sm text-gray-500">Voici un aperçu de votre activité</p>
       </div>
+
+      <OnboardingChecklist
+        hasPatient={(patientCount ?? 0) > 0}
+        hasNote={(noteCount ?? 0) > 0}
+        hasGeneratedNote={(generatedNoteCount ?? 0) > 0}
+        totalNotes={noteCount ?? 0}
+      />
 
       <div className="mb-8 grid grid-cols-2 gap-4">
         <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
@@ -47,7 +57,7 @@ export default async function DashboardPage() {
               <FileText className="h-5 w-5 text-teal-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{recentNotes?.length ?? 0}</p>
+              <p className="text-2xl font-bold text-gray-900">{noteCount ?? 0}</p>
               <p className="text-sm text-gray-500">Notes récentes</p>
             </div>
           </div>
