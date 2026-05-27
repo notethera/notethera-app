@@ -5,9 +5,58 @@ import { createClient } from '@/lib/supabase/client'
 import { AudioRecorder } from '@/components/notes/audio-recorder'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Download } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+
+function markdownToHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .split('\n')
+    .map((line) => `<p style="margin:3px 0">${line.trim() || '&nbsp;'}</p>`)
+    .join('')
+}
+
+function exportToPDF(patientAlias: string, sessionDate: string, noteContent: string) {
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Note clinique — ${patientAlias}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Georgia, 'Times New Roman', serif; max-width: 720px; margin: 48px auto; padding: 0 48px; color: #111827; }
+    header { margin-bottom: 28px; }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .meta { font-size: 13px; color: #6b7280; }
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }
+    .content { font-size: 13.5px; line-height: 1.85; color: #1f2937; }
+    .content p { margin: 3px 0; }
+    strong { font-weight: 700; }
+    footer { margin-top: 56px; font-size: 11px; color: #9ca3af; text-align: right; border-top: 1px solid #f3f4f6; padding-top: 12px; }
+    @media print { body { margin: 0; padding: 32px 48px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>${patientAlias}</h1>
+    <p class="meta">Séance du ${sessionDate} &nbsp;·&nbsp; Note clinique confidentielle</p>
+  </header>
+  <hr>
+  <div class="content">${markdownToHtml(noteContent)}</div>
+  <footer>Document généré par NoteThéra</footer>
+  <script>window.onload = () => { window.print(); }<\/script>
+</body>
+</html>`
+
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+}
 
 export default function NoteDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = use(paramsPromise)
@@ -51,6 +100,15 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
     setSaving(false)
   }
 
+  const handleExportPDF = () => {
+    if (!note) return
+    exportToPDF(
+      note.patient?.alias ?? 'Patient',
+      formatDate(note.session_date),
+      noteContent,
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -70,15 +128,24 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
 
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {note.patient?.alias}
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">{note.patient?.alias}</h1>
           <p className="mt-1 text-sm text-gray-500">Séance du {formatDate(note.session_date)}</p>
         </div>
-        <Button onClick={handleSave} loading={saving} variant="secondary">
-          <Save className="mr-2 h-4 w-4" />
-          Sauvegarder
-        </Button>
+        <div className="flex items-center gap-2">
+          {noteContent && (
+            <button
+              onClick={handleExportPDF}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              <Download className="h-4 w-4" />
+              Exporter en PDF
+            </button>
+          )}
+          <Button onClick={handleSave} loading={saving} variant="secondary">
+            <Save className="mr-2 h-4 w-4" />
+            Sauvegarder
+          </Button>
+        </div>
       </div>
 
       {!note.note_content && (
@@ -93,11 +160,11 @@ export default function NoteDetailPage({ params: paramsPromise }: { params: Prom
           <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">
             Transcription brute
           </summary>
-          <p className="px-4 py-3 text-sm text-gray-600 whitespace-pre-wrap border-t border-gray-100">{note.transcript}</p>
+          <p className="whitespace-pre-wrap border-t border-gray-100 px-4 py-3 text-sm text-gray-600">{note.transcript}</p>
         </details>
       )}
 
-      <div className="rounded-xl bg-white border border-gray-200 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-4 py-3">
           <h2 className="text-sm font-semibold text-gray-700">Note clinique</h2>
         </div>
