@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  const getCustomerUserId = async (customerId: string) => {
+  const getUserIdByCustomer = async (customerId: string) => {
     const { data } = await supabase
       .from('profiles')
       .select('id')
@@ -31,14 +31,26 @@ export async function POST(request: NextRequest) {
   }
 
   switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session
+      if (session.mode !== 'subscription') break
+      const userId = await getUserIdByCustomer(session.customer as string)
+      if (userId) {
+        await supabase.from('profiles').update({
+          subscription_status: 'active',
+          stripe_subscription_id: session.subscription as string,
+        }).eq('id', userId)
+      }
+      break
+    }
     case 'customer.subscription.created':
     case 'customer.subscription.updated': {
       const sub = event.data.object as Stripe.Subscription
-      const userId = await getCustomerUserId(sub.customer as string)
+      const userId = await getUserIdByCustomer(sub.customer as string)
       if (userId) {
         await supabase.from('profiles').update({
           subscription_status: sub.status,
-          subscription_id: sub.id,
+          stripe_subscription_id: sub.id,
           trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
         }).eq('id', userId)
       }
@@ -46,11 +58,21 @@ export async function POST(request: NextRequest) {
     }
     case 'customer.subscription.deleted': {
       const sub = event.data.object as Stripe.Subscription
-      const userId = await getCustomerUserId(sub.customer as string)
+      const userId = await getUserIdByCustomer(sub.customer as string)
       if (userId) {
         await supabase.from('profiles').update({
           subscription_status: 'canceled',
-          subscription_id: null,
+          stripe_subscription_id: null,
+        }).eq('id', userId)
+      }
+      break
+    }
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as Stripe.Invoice
+      const userId = await getUserIdByCustomer(invoice.customer as string)
+      if (userId) {
+        await supabase.from('profiles').update({
+          subscription_status: 'past_due',
         }).eq('id', userId)
       }
       break
