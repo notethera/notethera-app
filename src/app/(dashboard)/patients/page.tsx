@@ -21,9 +21,9 @@ export default function PatientsPage() {
   const loadPatients = async () => {
     const { data } = await supabase
       .from('patients')
-      .select('*')
+      .select('*, session_notes(count)')
       .order('alias', { ascending: true })
-    setPatients(data ?? [])
+    setPatients((data ?? []) as unknown as Patient[])
   }
 
   useEffect(() => {
@@ -103,7 +103,10 @@ export default function PatientsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">{patient.alias}</p>
-                    <p className="text-xs text-gray-500">{patient.session_count} séance{patient.session_count !== 1 ? 's' : ''}</p>
+                    {(() => {
+                      const count = Number((patient as unknown as { session_notes: { count: number }[] }).session_notes?.[0]?.count ?? 0)
+                      return <p className="text-xs text-gray-500">{count} séance{count !== 1 ? 's' : ''}</p>
+                    })()}
                   </div>
                   <p className="text-xs text-gray-400">Depuis le {formatDate(patient.created_at)}</p>
                 </Link>
