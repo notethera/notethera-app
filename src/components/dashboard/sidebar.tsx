@@ -1,12 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, FileText, Settings, CreditCard, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, Settings, CreditCard, LogOut, Menu, X, ChevronDown, UserCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 
 const navItems = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
@@ -40,6 +39,143 @@ function NavLinks({ onClick }: { onClick?: () => void }) {
   )
 }
 
+interface UserInfo {
+  email: string
+  firstName: string
+  initial: string
+}
+
+function useUserInfo(supabase: ReturnType<typeof createClient>) {
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return
+      const fullName = data.user.user_metadata?.full_name as string | undefined
+      const firstName = fullName?.split(' ')[0] ?? data.user.email?.split('@')[0] ?? ''
+      setUserInfo({
+        email: data.user.email ?? '',
+        firstName,
+        initial: firstName[0]?.toUpperCase() ?? '?',
+      })
+    })
+  }, [])
+  return userInfo
+}
+
+function UserAvatar({ initial }: { initial: string }) {
+  return (
+    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-teal-600 text-sm font-semibold text-white">
+      {initial}
+    </div>
+  )
+}
+
+function UserMenu({ supabase, onSignOut }: { supabase: ReturnType<typeof createClient>; onSignOut: () => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const userInfo = useUserInfo(supabase)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const initial = userInfo?.initial ?? '?'
+
+  return (
+    <div ref={ref} className="relative border-t border-gray-200 p-4">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-gray-50"
+      >
+        <UserAvatar initial={initial} />
+        <div className="min-w-0 flex-1 text-left">
+          <p className="truncate text-sm font-medium text-gray-900">{userInfo?.firstName ?? '…'}</p>
+          <p className="truncate text-xs text-gray-500">{userInfo?.email ?? ''}</p>
+        </div>
+        <ChevronDown className={cn('h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-150', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full left-4 right-4 mb-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+          <div className="border-b border-gray-100 px-4 py-3">
+            <p className="truncate text-xs font-medium text-gray-900">{userInfo?.email}</p>
+          </div>
+          <button
+            onClick={() => { setOpen(false); onSignOut() }}
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            <UserCircle2 className="h-4 w-4 text-gray-400" />
+            Changer de compte
+          </button>
+          <div className="border-t border-gray-100" />
+          <button
+            onClick={() => { setOpen(false); onSignOut() }}
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50"
+          >
+            <LogOut className="h-4 w-4" />
+            Se déconnecter
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MobileUserMenu({ supabase, onSignOut, onClose }: { supabase: ReturnType<typeof createClient>; onSignOut: () => void; onClose: () => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const userInfo = useUserInfo(supabase)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const initial = userInfo?.initial ?? '?'
+
+  return (
+    <div ref={ref} className="relative ml-auto">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-8 w-8 items-center justify-center rounded-full"
+        aria-label="Menu utilisateur"
+      >
+        <UserAvatar initial={initial} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg z-50">
+          <div className="border-b border-gray-100 px-4 py-3">
+            <p className="truncate text-xs font-medium text-gray-900">{userInfo?.email}</p>
+          </div>
+          <button
+            onClick={() => { setOpen(false); onClose(); onSignOut() }}
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            <UserCircle2 className="h-4 w-4 text-gray-400" />
+            Changer de compte
+          </button>
+          <div className="border-t border-gray-100" />
+          <button
+            onClick={() => { setOpen(false); onClose(); onSignOut() }}
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50"
+          >
+            <LogOut className="h-4 w-4" />
+            Se déconnecter
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const router = useRouter()
@@ -48,27 +184,14 @@ export function Sidebar() {
   const close = () => setIsOpen(false)
 
   const handleSignOut = async () => {
-    close()
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
   }
 
-  const signOutButton = (
-    <div className="border-t border-gray-200 p-4">
-      <button
-        onClick={handleSignOut}
-        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
-      >
-        <LogOut className="h-4 w-4" />
-        Déconnexion
-      </button>
-    </div>
-  )
-
   return (
     <>
-      {/* Desktop sidebar — always visible */}
+      {/* Desktop sidebar */}
       <aside className="hidden h-full w-64 flex-col border-r border-gray-200 bg-white md:flex">
         <div className="flex h-16 items-center border-b border-gray-200 px-6">
           <Link href="/dashboard" className="flex items-center gap-2">
@@ -79,10 +202,10 @@ export function Sidebar() {
           </Link>
         </div>
         <NavLinks />
-        {signOutButton}
+        <UserMenu supabase={supabase} onSignOut={handleSignOut} />
       </aside>
 
-      {/* Mobile top bar — fixed, always visible on small screens */}
+      {/* Mobile top bar */}
       <div className="fixed inset-x-0 top-0 z-20 flex h-14 items-center border-b border-gray-200 bg-white px-4 md:hidden">
         <button
           onClick={() => setIsOpen(true)}
@@ -97,14 +220,12 @@ export function Sidebar() {
           </div>
           <span className="text-base font-semibold text-gray-900">NoteThéra</span>
         </Link>
+        <MobileUserMenu supabase={supabase} onSignOut={handleSignOut} onClose={close} />
       </div>
 
       {/* Mobile backdrop */}
       {isOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/40 md:hidden"
-          onClick={close}
-        />
+        <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={close} />
       )}
 
       {/* Mobile slide-in sidebar */}
@@ -121,16 +242,11 @@ export function Sidebar() {
             </div>
             <span className="text-base font-semibold text-gray-900">NoteThéra</span>
           </Link>
-          <button
-            onClick={close}
-            className="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100"
-            aria-label="Fermer le menu"
-          >
+          <button onClick={close} className="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100" aria-label="Fermer le menu">
             <X className="h-5 w-5" />
           </button>
         </div>
         <NavLinks onClick={close} />
-        {signOutButton}
       </aside>
     </>
   )
