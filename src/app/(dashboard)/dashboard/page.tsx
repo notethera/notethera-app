@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   const [{ data: profile }, { count: patientCount }, { data: recentNotes }, { count: noteCount }, { count: generatedNoteCount }] = await Promise.all([
-    supabase.from('profiles').select('full_name, subscription_status').eq('id', user!.id).single(),
+    supabase.from('profiles').select('full_name, subscription_status, email').eq('id', user!.id).single(),
     supabase.from('patients').select('*', { count: 'exact', head: true }).eq('therapist_id', user!.id),
     supabase
       .from('session_notes')
@@ -23,13 +23,24 @@ export default async function DashboardPage() {
     supabase.from('session_notes').select('*', { count: 'exact', head: true }).eq('therapist_id', user!.id).not('note_content', 'is', null),
   ])
 
-  const firstName = profile?.full_name?.split(' ')[0] ?? 'Docteur'
-  const savedMinutes = (generatedNoteCount ?? 0) * 20
-  const savedTime = savedMinutes < 60
-    ? `${savedMinutes} min`
-    : savedMinutes % 60 === 0
-      ? `${savedMinutes / 60}h`
-      : `${Math.floor(savedMinutes / 60)}h${String(savedMinutes % 60).padStart(2, '0')}`
+  // Prénom : profil → métadonnées auth → fallback
+  const metaName = (user?.user_metadata?.full_name ?? user?.user_metadata?.name) as string | undefined
+  const rawName = profile?.full_name ?? metaName ?? ''
+  // Prend le premier mot qui ressemble à un prénom (> 1 char, pas tout en majuscules)
+  const nameParts = rawName.trim().split(/\s+/)
+  const firstName = nameParts.find(p => p.length > 1 && p !== p.toUpperCase())
+    ?? nameParts[0]
+    ?? 'Docteur'
+
+  const generatedCount = generatedNoteCount ?? 0
+  const savedMinutes = generatedCount * 20
+  const savedTime = savedMinutes === 0
+    ? '—'
+    : savedMinutes < 60
+      ? `${savedMinutes} min`
+      : savedMinutes % 60 === 0
+        ? `${savedMinutes / 60}h`
+        : `${Math.floor(savedMinutes / 60)}h${String(savedMinutes % 60).padStart(2, '0')}`
 
   return (
     <div className="p-8">
