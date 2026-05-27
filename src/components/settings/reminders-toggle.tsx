@@ -24,11 +24,11 @@ export function RemindersToggle({ userId, enabled }: { userId: string; enabled: 
       disabled={saving}
       className="flex items-center justify-between w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
     >
-      <div className="flex items-center gap-2.5">
-        <Bell className="h-4 w-4 text-teal-600" />
-        <div className="text-left">
-          <p>{isEnabled ? 'Rappels activés' : 'Rappels désactivés'}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Email 24h avant chaque séance planifiée</p>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <Bell className="h-4 w-4 shrink-0 text-teal-600" />
+        <div className="min-w-0 text-left">
+          <p className="truncate">{isEnabled ? 'Rappels activés' : 'Rappels désactivés'}</p>
+          <p className="truncate text-xs text-gray-500 mt-0.5">Email 24h avant chaque séance planifiée</p>
         </div>
       </div>
       <div className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${isEnabled ? 'bg-teal-600' : 'bg-gray-300'}`}>
