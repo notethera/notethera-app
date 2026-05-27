@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
 import type { Patient } from '@/types'
-import { Plus, FileText } from 'lucide-react'
+import { Plus, FileText, Search } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense } from 'react'
 
@@ -44,6 +44,7 @@ function NotesPageInner() {
   const [selectedPatient, setSelectedPatient] = useState('')
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0])
   const [userId, setUserId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
   const preselectedPatient = searchParams.get('patient')
@@ -82,12 +83,22 @@ function NotesPageInner() {
     if (data) router.push(`/notes/${data.id}`)
   }
 
+  const filtered = notes.filter((note) => {
+    const q = search.toLowerCase()
+    return (
+      note.patient?.alias?.toLowerCase().includes(q) ||
+      note.title?.toLowerCase().includes(q)
+    )
+  })
+
   return (
     <div className="p-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Notes de séance</h1>
-          <p className="mt-1 text-sm text-gray-500">{notes.length} note{notes.length > 1 ? 's' : ''}</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {search ? `${filtered.length} / ${notes.length}` : notes.length} note{notes.length > 1 ? 's' : ''}
+          </p>
         </div>
       </div>
 
@@ -121,14 +132,29 @@ function NotesPageInner() {
         </Button>
       </form>
 
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Rechercher par patient ou titre..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
+      </div>
+
       <div className="rounded-xl bg-white border border-gray-100 shadow-sm">
         {notes.length === 0 ? (
           <div className="px-6 py-12 text-center text-sm text-gray-500">
             Aucune note. Créez votre première note de séance ci-dessus.
           </div>
+        ) : filtered.length === 0 ? (
+          <div className="px-6 py-12 text-center text-sm text-gray-500">
+            Aucune note ne correspond à « {search} ».
+          </div>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {notes.map((note) => {
+            {filtered.map((note) => {
               const snippet = !note.title ? extractResumeSnippet(note.note_content) : null
               return (
                 <li key={note.id}>
