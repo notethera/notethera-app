@@ -16,12 +16,10 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="flex items-center justify-between w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+      aria-label={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+      className="flex shrink-0 items-center gap-2 hover:opacity-80 transition-opacity"
     >
-      <div className="flex min-w-0 items-center gap-2.5">
-        {isDark ? <Moon className="h-4 w-4 shrink-0 text-teal-600" /> : <Sun className="h-4 w-4 shrink-0 text-teal-600" />}
-        <span className="truncate">{isDark ? 'Mode sombre activé' : 'Mode clair activé'}</span>
-      </div>
+      {isDark ? <Moon className="h-4 w-4 text-teal-600" /> : <Sun className="h-4 w-4 text-teal-600" />}
       <div className={`relative h-5 w-9 rounded-full transition-colors ${isDark ? 'bg-teal-600' : 'bg-gray-300'}`}>
         <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${isDark ? 'translate-x-4' : 'translate-x-0.5'}`} />
       </div>

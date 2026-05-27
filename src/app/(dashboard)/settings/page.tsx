@@ -52,18 +52,27 @@ export default async function SettingsPage() {
           </form>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-base font-semibold text-gray-900">Apparence</h2>
-          <ThemeToggle />
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Apparence</p>
+              <p className="text-xs text-gray-500 mt-0.5">Choisissez le thème de l'interface</p>
+            </div>
+            <ThemeToggle />
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Rappels de séances</h2>
-          <p className="mb-4 text-xs text-gray-500">Recevez un email la veille de chaque séance planifiée dans NoteThéra.</p>
-          <RemindersToggle
-            userId={user!.id}
-            enabled={profile?.reminder_email_enabled ?? false}
-          />
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="min-w-0 mr-6">
+              <p className="text-sm font-semibold text-gray-900">Rappels de séances</p>
+              <p className="text-xs text-gray-500 mt-0.5">Email 24h avant chaque séance planifiée</p>
+            </div>
+            <RemindersToggle
+              userId={user!.id}
+              enabled={profile?.reminder_email_enabled ?? false}
+            />
+          </div>
         </div>
       </div>
     </div>

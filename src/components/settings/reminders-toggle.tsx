@@ -22,16 +22,10 @@ export function RemindersToggle({ userId, enabled }: { userId: string; enabled: 
       type="button"
       onClick={toggle}
       disabled={saving}
-      className="flex items-center justify-between w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
+      aria-label={isEnabled ? 'Désactiver les rappels' : 'Activer les rappels'}
+      className="flex shrink-0 items-center hover:opacity-80 transition-opacity disabled:opacity-50"
     >
-      <div className="flex min-w-0 items-center gap-2.5">
-        <Bell className="h-4 w-4 shrink-0 text-teal-600" />
-        <div className="min-w-0 text-left">
-          <p className="truncate">{isEnabled ? 'Rappels activés' : 'Rappels désactivés'}</p>
-          <p className="truncate text-xs text-gray-500 mt-0.5">Email 24h avant chaque séance planifiée</p>
-        </div>
-      </div>
-      <div className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${isEnabled ? 'bg-teal-600' : 'bg-gray-300'}`}>
+      <div className={`relative h-5 w-9 rounded-full transition-colors ${isEnabled ? 'bg-teal-600' : 'bg-gray-300'}`}>
         <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
       </div>
     </button>
