@@ -10,9 +10,32 @@ import { Plus, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense } from 'react'
 
+function extractResumeSnippet(content: string | null): string | null {
+  if (!content) return null
+  // Find first paragraph after the "Résumé" heading
+  const match = content.match(/Résumé[^\n]*\n+([\s\S]*?)(?=\n\d+\.\s*\*\*|\n#{1,3}\s|\s*$)/)
+  if (!match) return null
+  const firstLine = match[1].trim().split('\n')[0].trim()
+  return firstLine.length > 10 ? firstLine.slice(0, 130) : null
+}
+
+function InlineBold({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/)
+  return (
+    <>
+      {parts.map((part, i) =>
+        /^\*\*[^*]+\*\*$/.test(part)
+          ? <strong key={i} className="font-semibold text-gray-800">{part.slice(2, -2)}</strong>
+          : <span key={i}>{part}</span>
+      )}
+    </>
+  )
+}
+
 function NotesPageInner() {
   const [notes, setNotes] = useState<Array<{
     id: string; session_date: string;
+    note_content: string | null;
     patient: { alias: string } | null
   }>>([])
   const [patients, setPatients] = useState<Patient[]>([])
@@ -34,7 +57,7 @@ function NotesPageInner() {
       supabase.auth.getUser(),
       supabase
         .from('session_notes')
-        .select('id, session_date, patient:patients(alias)')
+        .select('id, session_date, note_content, patient:patients(alias)')
         .order('created_at', { ascending: false }),
       supabase.from('patients').select('*').order('alias'),
     ])
@@ -104,21 +127,25 @@ function NotesPageInner() {
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {notes.map((note) => (
-              <li key={note.id}>
-                <Link href={`/notes/${note.id}`} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {note.patient?.alias}
-                      </p>
+            {notes.map((note) => {
+              const snippet = extractResumeSnippet(note.note_content)
+              return (
+                <li key={note.id}>
+                  <Link href={`/notes/${note.id}`} className="flex items-center gap-3 px-6 py-4 hover:bg-gray-50">
+                    <FileText className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{note.patient?.alias}</p>
                       <p className="text-xs text-gray-500">{formatDate(note.session_date)}</p>
+                      {snippet && (
+                        <p className="mt-0.5 truncate text-xs text-gray-500">
+                          <InlineBold text={snippet} />
+                        </p>
+                      )}
                     </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
