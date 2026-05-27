@@ -13,7 +13,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     supabase.from('patients').select('*').eq('id', id).single(),
     supabase
       .from('session_notes')
-      .select('id, session_date, note_content')
+      .select('id, session_date, title, note_content')
       .eq('patient_id', id)
       .order('session_date', { ascending: false }),
   ])
@@ -40,7 +40,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       <div className="mb-8">
         <div className="inline-flex rounded-xl bg-white border border-gray-100 p-4">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mr-2">Séances</p>
-          <p className="text-sm font-semibold text-gray-900">{patient.session_count}</p>
+          <p className="text-sm font-semibold text-gray-900">{notes?.length ?? 0}</p>
         </div>
       </div>
 
@@ -61,16 +61,26 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {notes?.map((note) => (
-              <li key={note.id}>
-                <Link href={`/notes/${note.id}`} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-gray-400" />
-                    <p className="text-sm text-gray-900">{formatDate(note.session_date)}</p>
-                  </div>
-                </Link>
-              </li>
-            ))}
+            {notes?.map((note, i) => {
+              const n = note as unknown as { id: string; session_date: string; title: string | null; note_content: string | null }
+              const sessionNumber = (notes?.length ?? 0) - i
+              return (
+                <li key={n.id}>
+                  <Link href={`/notes/${n.id}`} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500">
+                      {sessionNumber}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-gray-900">
+                        {n.title ?? <span className="italic text-gray-400">Note sans titre</span>}
+                      </p>
+                      <p className="text-xs text-gray-500">{formatDate(n.session_date)}</p>
+                    </div>
+                    <FileText className="h-4 w-4 shrink-0 text-gray-300" />
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
