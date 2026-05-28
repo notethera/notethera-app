@@ -28,7 +28,7 @@ export default async function DashboardPage() {
   const rawName = profile?.full_name ?? metaName ?? ''
   // Prend le premier mot qui ressemble à un prénom (> 1 char, pas tout en majuscules)
   const nameParts = rawName.trim().split(/\s+/)
-  const firstName = (nameParts.find(p => p.length > 1 && p !== p.toUpperCase())
+  const firstName = (nameParts.find((p: string) => p.length > 1 && p !== p.toUpperCase())
     ?? nameParts[0]
     ?? '') || 'Docteur'
 
