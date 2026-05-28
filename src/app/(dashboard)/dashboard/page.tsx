@@ -28,9 +28,11 @@ export default async function DashboardPage() {
   const rawName = profile?.full_name ?? metaName ?? ''
   // Prend le premier mot qui ressemble à un prénom (> 1 char, pas tout en majuscules)
   const nameParts = rawName.trim().split(/\s+/)
-  const firstName = nameParts.find(p => p.length > 1 && p !== p.toUpperCase())
+  const firstName = (nameParts.find(p => p.length > 1 && p !== p.toUpperCase())
     ?? nameParts[0]
-    ?? 'Docteur'
+    ?? '') || 'Docteur'
+
+  console.log('firstName:', firstName)
 
   const generatedCount = generatedNoteCount ?? 0
   const savedMinutes = generatedCount * 20
@@ -45,7 +47,7 @@ export default async function DashboardPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Bonjour, Dr. {firstName}</h1>
+        <h1>Bonjour, Dr. {firstName}</h1>
         <p className="mt-1 text-sm text-gray-500">Voici un aperçu de votre activité</p>
       </div>
 
