@@ -63,6 +63,7 @@ export function AudioRecorder({ noteId, onTranscribed }: AudioRecorderProps) {
     setProcessing(true)
     setError(null)
     try {
+      console.log('blob size:', audio.size, 'type:', audio.type)
       const form = new FormData()
       const ext = audio.type.split(';')[0].split('/')[1] || 'webm'
       const filename = audio instanceof File ? audio.name : `session.${ext}`
