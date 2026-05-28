@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/settings/theme-toggle'
 import { RemindersToggle } from '@/components/settings/reminders-toggle'
+import { ReferralCard } from '@/components/settings/referral-card'
 import { revalidatePath } from 'next/cache'
 
 async function updateProfileAction(formData: FormData) {
@@ -20,11 +21,10 @@ async function updateProfileAction(formData: FormData) {
 export default async function SettingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, email, reminder_email_enabled')
-    .eq('id', user!.id)
-    .single()
+  const [{ data: profile }, { data: referralCount }] = await Promise.all([
+    supabase.from('profiles').select('full_name, email, reminder_email_enabled, referral_code').eq('id', user!.id).single(),
+    supabase.rpc('get_referral_count'),
+  ])
 
   return (
     <div className="p-8">
@@ -74,6 +74,13 @@ export default async function SettingsPage() {
             />
           </div>
         </div>
+
+        {profile?.referral_code && (
+          <ReferralCard
+            code={profile.referral_code}
+            count={referralCount ?? 0}
+          />
+        )}
       </div>
     </div>
   )

@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -15,6 +15,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const refCode = searchParams.get('ref')
   const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,7 +27,12 @@ export default function RegisterPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: {
+          full_name: fullName,
+          ...(refCode ? { referred_by: refCode } : {}),
+        },
+      },
     })
 
     setLoading(false)
@@ -110,5 +117,13 @@ export default function RegisterPage() {
         </Link>
       </p>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   )
 }
