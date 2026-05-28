@@ -35,20 +35,23 @@ export function AudioRecorder({ noteId, onTranscribed }: AudioRecorderProps) {
     chunksRef.current = []
 
     recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
-    recorder.start()
+    recorder.start(250)
     setRecording(true)
     setDuration(0)
     timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000)
   }
 
   const stopRecording = () => {
-    if (!mediaRecorderRef.current) return
-    const mime = mimeTypeRef.current
-    mediaRecorderRef.current.onstop = () => processAudio(new Blob(chunksRef.current, { type: mime }))
-    mediaRecorderRef.current.stop()
-    mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop())
+    const recorder = mediaRecorderRef.current
+    if (!recorder) return
     if (timerRef.current) clearInterval(timerRef.current)
     setRecording(false)
+    const mime = mimeTypeRef.current
+    recorder.onstop = () => {
+      recorder.stream.getTracks().forEach((t) => t.stop())
+      processAudio(new Blob(chunksRef.current, { type: mime }))
+    }
+    recorder.stop()
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
