@@ -19,10 +19,18 @@ export function AudioRecorder({ noteId, onTranscribed }: AudioRecorderProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const mimeTypeRef = useRef<string>('audio/webm')
 
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    const recorder = new MediaRecorder(stream)
+    const preferred = [
+      'audio/webm;codecs=opus',
+      'audio/ogg;codecs=opus',
+      'audio/webm',
+    ]
+    const mimeType = preferred.find((t) => MediaRecorder.isTypeSupported(t)) ?? ''
+    mimeTypeRef.current = mimeType || 'audio/webm'
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
     mediaRecorderRef.current = recorder
     chunksRef.current = []
 
@@ -35,7 +43,8 @@ export function AudioRecorder({ noteId, onTranscribed }: AudioRecorderProps) {
 
   const stopRecording = () => {
     if (!mediaRecorderRef.current) return
-    mediaRecorderRef.current.onstop = () => processAudio(new Blob(chunksRef.current, { type: 'audio/webm' }))
+    const mime = mimeTypeRef.current
+    mediaRecorderRef.current.onstop = () => processAudio(new Blob(chunksRef.current, { type: mime }))
     mediaRecorderRef.current.stop()
     mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop())
     if (timerRef.current) clearInterval(timerRef.current)
@@ -52,7 +61,8 @@ export function AudioRecorder({ noteId, onTranscribed }: AudioRecorderProps) {
     setError(null)
     try {
       const form = new FormData()
-      const filename = audio instanceof File ? audio.name : `session.${audio.type.split(';')[0].split('/')[1] || 'webm'}`
+      const ext = audio.type.split(';')[0].split('/')[1] || 'webm'
+      const filename = audio instanceof File ? audio.name : `session.${ext}`
       form.append('audio', audio, filename)
       form.append('noteId', noteId)
 
