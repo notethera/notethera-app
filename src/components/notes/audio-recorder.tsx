@@ -5,43 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Mic, Square, Upload, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-function writeStr(view: DataView, offset: number, str: string) {
-  for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i))
-}
-
-function audioBufferToWav(buf: AudioBuffer): Blob {
-  const ch = buf.numberOfChannels
-  const sr = buf.sampleRate
-  const len = buf.length
-  const dataSize = len * ch * 2
-  const ab = new ArrayBuffer(44 + dataSize)
-  const v = new DataView(ab)
-  writeStr(v, 0, 'RIFF');  v.setUint32(4, 36 + dataSize, true)
-  writeStr(v, 8, 'WAVE');  writeStr(v, 12, 'fmt ')
-  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, ch, true)
-  v.setUint32(24, sr, true); v.setUint32(28, sr * ch * 2, true)
-  v.setUint16(32, ch * 2, true); v.setUint16(34, 16, true)
-  writeStr(v, 36, 'data'); v.setUint32(40, dataSize, true)
-  let offset = 44
-  for (let i = 0; i < len; i++) {
-    for (let c = 0; c < ch; c++) {
-      const s = Math.max(-1, Math.min(1, buf.getChannelData(c)[i]))
-      v.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true)
-      offset += 2
-    }
-  }
-  return new Blob([ab], { type: 'audio/wav' })
-}
-
-async function prependSilence(blob: Blob, seconds: number): Promise<Blob> {
-  const ctx = new AudioContext()
-  const decoded = await ctx.decodeAudioData(await blob.arrayBuffer())
-  const silenceSamples = Math.floor(decoded.sampleRate * seconds)
-  const out = ctx.createBuffer(decoded.numberOfChannels, silenceSamples + decoded.length, decoded.sampleRate)
-  for (let c = 0; c < decoded.numberOfChannels; c++) out.getChannelData(c).set(decoded.getChannelData(c), silenceSamples)
-  await ctx.close()
-  return audioBufferToWav(out)
-}
 
 interface AudioRecorderProps {
   noteId: string
@@ -88,9 +51,9 @@ export function AudioRecorder({ noteId, onTranscribed }: AudioRecorderProps) {
     setProcessing(true)
     setError(null)
     try {
-      const padded = await prependSilence(audio, 0.5)
       const form = new FormData()
-      form.append('audio', padded, 'session.wav')
+      const filename = audio instanceof File ? audio.name : `session.${audio.type.split(';')[0].split('/')[1] || 'webm'}`
+      form.append('audio', audio, filename)
       form.append('noteId', noteId)
 
       const res = await fetch('/api/transcribe', { method: 'POST', body: form })
