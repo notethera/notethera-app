@@ -30,6 +30,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing audio or noteId' }, { status: 400 })
   }
 
+  console.log('[transcribe] received file:', audioFile.name, audioFile.size, audioFile.type)
+
   try {
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
