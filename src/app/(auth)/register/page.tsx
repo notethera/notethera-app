@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { generateFingerprint } from '@/lib/fingerprint'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -24,6 +25,27 @@ function RegisterForm() {
     setError('')
     setLoading(true)
 
+    // Generate browser fingerprint and check trial eligibility before signup
+    let fingerprint: string | undefined
+    try {
+      fingerprint = await generateFingerprint()
+    } catch {
+      // Non-blocking: proceed without fingerprint if crypto fails
+    }
+
+    const checkRes = await fetch('/api/check-trial', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, fingerprint }),
+    })
+    const { blocked } = await checkRes.json()
+
+    if (blocked) {
+      setError("Un essai gratuit a déjà été utilisé depuis cet appareil ou cette adresse email. Vous pouvez vous abonner directement.")
+      setLoading(false)
+      return
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -31,6 +53,7 @@ function RegisterForm() {
         data: {
           full_name: fullName,
           ...(refCode ? { referred_by: refCode } : {}),
+          ...(fingerprint ? { fingerprint_hash: fingerprint } : {}),
         },
       },
     })
@@ -40,11 +63,9 @@ function RegisterForm() {
     if (error) {
       setError(error.message)
     } else if (data.session) {
-      // Email confirmation disabled — user is immediately logged in
       router.push('/dashboard')
       router.refresh()
     } else {
-      // Email confirmation required — session is null until confirmed
       setEmailSent(true)
     }
   }

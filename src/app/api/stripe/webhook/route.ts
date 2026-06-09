@@ -53,6 +53,14 @@ export async function POST(request: NextRequest) {
           stripe_subscription_id: sub.id,
           trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
         }).eq('id', userId)
+
+        // Mark trial as used the first time a trialing subscription is created
+        if (sub.status === 'trialing' && event.type === 'customer.subscription.created') {
+          await supabase.from('profiles')
+            .update({ trial_used_at: new Date().toISOString() })
+            .eq('id', userId)
+            .is('trial_used_at', null)
+        }
       }
       break
     }
