@@ -77,6 +77,43 @@ export async function POST(request: NextRequest) {
       }
       break
     }
+    case 'invoice.payment_succeeded': {
+      const invoice = event.data.object as Stripe.Invoice
+      // Skip free invoices (trial periods)
+      if (!invoice.subscription || invoice.amount_paid === 0) break
+
+      const userId = await getUserIdByCustomer(invoice.customer as string)
+      if (!userId) break
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('referred_by')
+        .eq('id', userId)
+        .single()
+
+      if (!profile?.referred_by) break
+
+      const { data: affiliate } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('referral_code', profile.referred_by)
+        .single()
+
+      if (!affiliate) break
+
+      const commissionCents = Math.round(invoice.amount_paid * 0.30)
+
+      await supabase.from('affiliate_commissions').upsert({
+        affiliate_id: affiliate.id,
+        referred_user_id: userId,
+        stripe_invoice_id: invoice.id,
+        amount_cents: invoice.amount_paid,
+        commission_cents: commissionCents,
+        status: 'pending',
+      }, { onConflict: 'stripe_invoice_id', ignoreDuplicates: true })
+
+      break
+    }
   }
 
   return NextResponse.json({ received: true })

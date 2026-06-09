@@ -21,9 +21,10 @@ async function updateProfileAction(formData: FormData) {
 export default async function SettingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const [{ data: profile }, { data: referralCount }] = await Promise.all([
+  const [{ data: profile }, { data: referralCount }, { data: affiliateStats }] = await Promise.all([
     supabase.from('profiles').select('full_name, email, reminder_email_enabled, referral_code').eq('id', user!.id).single(),
     supabase.rpc('get_referral_count'),
+    supabase.rpc('get_affiliate_stats'),
   ])
 
   return (
@@ -78,7 +79,9 @@ export default async function SettingsPage() {
         {profile?.referral_code && (
           <ReferralCard
             code={profile.referral_code}
-            count={referralCount ?? 0}
+            referralCount={referralCount ?? 0}
+            totalCents={affiliateStats?.total_cents ?? 0}
+            pendingCents={affiliateStats?.pending_cents ?? 0}
           />
         )}
       </div>
