@@ -30,7 +30,8 @@ export async function proxy(request: NextRequest) {
 
   const isPublicRoute = isAuthRoute ||
     request.nextUrl.pathname.startsWith('/cgv') ||
-    request.nextUrl.pathname.startsWith('/confidentialite')
+    request.nextUrl.pathname.startsWith('/confidentialite') ||
+    request.nextUrl.pathname.startsWith('/faq')
 
   if (!user && !isPublicRoute && request.nextUrl.pathname !== '/') {
     const url = request.nextUrl.clone()

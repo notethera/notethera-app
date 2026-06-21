@@ -201,6 +201,7 @@ export default function HomePage() {
       <footer className="border-t border-gray-100 py-8 text-center text-sm text-gray-400">
         <p>© {new Date().getFullYear()} NoteThéra · Conçu pour les thérapeutes francophones</p>
         <div className="mt-2 flex justify-center gap-4">
+          <Link href="/faq" className="hover:text-gray-600">FAQ</Link>
           <Link href="/cgv" className="hover:text-gray-600">CGV &amp; Mentions légales</Link>
           <Link href="/confidentialite" className="hover:text-gray-600">Politique de confidentialité</Link>
         </div>
