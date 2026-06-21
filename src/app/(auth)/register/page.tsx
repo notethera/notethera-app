@@ -17,7 +17,7 @@ function RegisterForm() {
   const [emailSent, setEmailSent] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const refCode = searchParams.get('ref')
+  const refCode = searchParams.get('ref')?.trim() || null
   const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
