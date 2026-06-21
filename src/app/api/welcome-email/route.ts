@@ -94,16 +94,15 @@ export async function POST(req: NextRequest) {
 
   if (!profile) return NextResponse.json({ sent: false, reason: 'not_found' })
 
-  // Atomic guard: only the request that flips welcome_email_sent_at from null wins the send
-  const { data: claimed } = await supabase
+  const { data: alreadySent } = await supabase
     .from('profiles')
-    .update({ welcome_email_sent_at: new Date().toISOString() })
+    .select('welcome_email_sent_at')
     .eq('id', profile.id)
-    .is('welcome_email_sent_at', null)
-    .select('id')
-    .maybeSingle()
+    .single()
 
-  if (!claimed) return NextResponse.json({ sent: false, reason: 'already_sent' })
+  if (alreadySent?.welcome_email_sent_at) {
+    return NextResponse.json({ sent: false, reason: 'already_sent' })
+  }
 
   const proto = req.headers.get('x-forwarded-proto') ?? 'https'
   const host = req.headers.get('host') ?? ''
@@ -114,12 +113,25 @@ export async function POST(req: NextRequest) {
   const firstName = profile.full_name?.trim().split(' ')[0] || null
   const resend = new Resend(resendKey)
 
-  await resend.emails.send({
+  const { error: resendError } = await resend.emails.send({
     from: 'NoteThéra <bienvenue@notethera.fr>',
     to: profile.email,
     subject: 'Bienvenue sur NoteThéra',
     html: welcomeEmailHtml(firstName, baseUrl),
   })
+
+  if (resendError) {
+    console.error('[welcome-email] Resend rejected the send:', resendError)
+    return NextResponse.json({ sent: false, reason: 'resend_error', error: resendError.message }, { status: 502 })
+  }
+
+  // Mark as sent only once Resend has actually accepted it — a request that only
+  // claimed the slot and then failed must not block a future retry.
+  await supabase
+    .from('profiles')
+    .update({ welcome_email_sent_at: new Date().toISOString() })
+    .eq('id', profile.id)
+    .is('welcome_email_sent_at', null)
 
   return NextResponse.json({ sent: true })
 }

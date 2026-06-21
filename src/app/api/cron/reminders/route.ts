@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     const patientAlias = (session.patient as unknown as { alias: string } | null)?.alias ?? 'Patient'
     const noteTitle = session.title ?? `Séance — ${patientAlias}`
 
-    await resend.emails.send({
+    const { error: resendError } = await resend.emails.send({
       from: 'NoteThéra <rappels@notethera.fr>',
       to: therapist.email,
       subject: `Rappel : séance demain avec ${patientAlias}`,
@@ -65,6 +65,12 @@ export async function GET(req: NextRequest) {
         </div>
       `,
     })
+
+    if (resendError) {
+      console.error('[cron/reminders] Resend rejected the send:', resendError)
+      continue
+    }
+
     sent++
   }
 
