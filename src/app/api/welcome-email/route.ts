@@ -114,7 +114,8 @@ export async function POST(req: NextRequest) {
   const resend = new Resend(resendKey)
 
   const { error: resendError } = await resend.emails.send({
-    from: 'NoteThéra <bienvenue@notethera.fr>',
+    // TODO: revert to NoteThéra <bienvenue@notethera.fr> once the domain is purchased and verified on Resend
+    from: 'NoteThéra <onboarding@resend.dev>',
     to: profile.email,
     subject: 'Bienvenue sur NoteThéra',
     html: welcomeEmailHtml(firstName, baseUrl),

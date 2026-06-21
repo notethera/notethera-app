@@ -49,7 +49,8 @@ export async function GET(req: NextRequest) {
     const noteTitle = session.title ?? `Séance — ${patientAlias}`
 
     const { error: resendError } = await resend.emails.send({
-      from: 'NoteThéra <rappels@notethera.fr>',
+      // TODO: revert to NoteThéra <rappels@notethera.fr> once the domain is purchased and verified on Resend
+      from: 'NoteThéra <onboarding@resend.dev>',
       to: therapist.email,
       subject: `Rappel : séance demain avec ${patientAlias}`,
       html: `
