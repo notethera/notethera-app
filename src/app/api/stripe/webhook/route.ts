@@ -48,10 +48,19 @@ export async function POST(request: NextRequest) {
       const sub = event.data.object as Stripe.Subscription
       const userId = await getUserIdByCustomer(sub.customer as string)
       if (userId) {
+        const priceId = sub.items.data[0]?.price?.id ?? ''
+        const planMap: Record<string, 'solo' | 'pro' | 'pro_annual'> = {
+          [process.env.STRIPE_PRICE_ID_SOLO ?? '']: 'solo',
+          [process.env.STRIPE_PRICE_ID_PRO ?? '']: 'pro',
+          [process.env.STRIPE_PRICE_ID_PRO_ANNUAL ?? '']: 'pro_annual',
+        }
+        const subscriptionPlan = planMap[priceId] ?? 'pro'
+
         await supabase.from('profiles').update({
           subscription_status: sub.status,
           stripe_subscription_id: sub.id,
           trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+          subscription_plan: subscriptionPlan,
         }).eq('id', userId)
 
         // Mark trial as used the first time a trialing subscription is created
@@ -71,6 +80,7 @@ export async function POST(request: NextRequest) {
         await supabase.from('profiles').update({
           subscription_status: 'canceled',
           stripe_subscription_id: null,
+          subscription_plan: null,
         }).eq('id', userId)
       }
       break
@@ -86,7 +96,7 @@ export async function POST(request: NextRequest) {
       break
     }
     case 'invoice.payment_succeeded': {
-      const invoice = event.data.object as Stripe.Invoice
+      const invoice = event.data.object as Stripe.Invoice & { subscription?: string | null }
       // Skip free invoices (trial periods)
       if (!invoice.subscription || invoice.amount_paid === 0) break
 

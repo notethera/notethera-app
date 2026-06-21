@@ -87,42 +87,123 @@ export default function HomePage() {
         </section>
 
         <section className="py-20">
-          <div className="mx-auto max-w-2xl px-6 text-center">
-            <h2 className="text-3xl font-bold text-gray-900">Tarification simple</h2>
-            <div className="mt-10 rounded-2xl border border-gray-200 p-8 shadow-sm">
-              <p className="text-sm font-medium uppercase tracking-wide text-teal-600">Pro</p>
-              <div className="mt-2 flex items-end justify-center gap-1">
-                <span className="text-5xl font-bold text-gray-900">49€</span>
-                <span className="mb-2 text-gray-500">/mois</span>
+          <div className="mx-auto max-w-5xl px-6">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-gray-900">Tarification simple et transparente</h2>
+              <p className="mt-4 text-gray-500">14 jours d&apos;essai gratuit sur tous les plans · Sans carte bancaire</p>
+            </div>
+            <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
+
+              {/* Solo */}
+              <div className="rounded-2xl border border-gray-200 bg-white p-8">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Solo</p>
+                <div className="mt-4 flex items-end gap-1">
+                  <span className="text-4xl font-bold text-gray-900">19€</span>
+                  <span className="mb-1 text-sm text-gray-500">/mois</span>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">15 notes cliniques par mois</p>
+                <ul className="mt-6 space-y-2.5">
+                  {[
+                    '15 notes/mois',
+                    'Transcription Whisper',
+                    'Génération par IA',
+                    'Gestion des patients',
+                    'Export PDF',
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+                      <span className="text-teal-500">✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/register"
+                  className="mt-8 block rounded-lg border border-teal-600 py-2.5 text-center text-sm font-medium text-teal-600 hover:bg-teal-50"
+                >
+                  Commencer l&apos;essai gratuit
+                </Link>
               </div>
-              <p className="mt-2 text-gray-500">Puis 49 €/mois. Annulation à tout moment.</p>
-              <ul className="mt-6 space-y-3 text-left text-sm text-gray-600">
-                {[
-                  'Notes illimitées',
-                  'Transcription Whisper',
-                  'Génération par GPT-4',
-                  'Gestion des patients',
-                  'Export PDF',
-                  'Support prioritaire',
-                ].map((f) => (
-                  <li key={f} className="flex items-center gap-2">
-                    <span className="text-teal-500">✓</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/register"
-                className="mt-8 block rounded-lg bg-teal-600 py-3 text-center text-sm font-medium text-white hover:bg-teal-700"
-              >
-                Démarrer l'essai gratuit
-              </Link>
+
+              {/* Pro – le plus populaire */}
+              <div className="relative rounded-2xl border-2 border-teal-600 bg-white p-8 shadow-lg">
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                  <span className="rounded-full bg-teal-600 px-4 py-1 text-xs font-semibold text-white">
+                    Le plus populaire
+                  </span>
+                </div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-teal-600">Pro</p>
+                <div className="mt-4 flex items-end gap-1">
+                  <span className="text-4xl font-bold text-gray-900">49€</span>
+                  <span className="mb-1 text-sm text-gray-500">/mois</span>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">Notes illimitées</p>
+                <ul className="mt-6 space-y-2.5">
+                  {[
+                    'Notes illimitées',
+                    'Transcription Whisper',
+                    'Génération par IA',
+                    'Gestion des patients',
+                    'Export PDF',
+                    'Support prioritaire',
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+                      <span className="text-teal-500">✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/register"
+                  className="mt-8 block rounded-lg bg-teal-600 py-2.5 text-center text-sm font-medium text-white hover:bg-teal-700"
+                >
+                  Démarrer l&apos;essai gratuit
+                </Link>
+              </div>
+
+              {/* Pro Annuel – meilleure valeur */}
+              <div className="relative rounded-2xl border border-gray-200 bg-gray-50 p-8">
+                <div className="absolute -top-3.5 right-5">
+                  <span className="rounded-full bg-amber-500 px-4 py-1 text-xs font-semibold text-white">
+                    Économisez 20%
+                  </span>
+                </div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Pro Annuel</p>
+                <div className="mt-4 flex items-end gap-1">
+                  <span className="text-4xl font-bold text-gray-900">39€</span>
+                  <span className="mb-1 text-sm text-gray-500">/mois</span>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">Facturé 468€/an</p>
+                <ul className="mt-6 space-y-2.5">
+                  {[
+                    'Notes illimitées',
+                    'Transcription Whisper',
+                    'Génération par IA',
+                    'Gestion des patients',
+                    'Export PDF',
+                    'Support prioritaire',
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+                      <span className="text-teal-500">✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/register"
+                  className="mt-8 block rounded-lg border border-gray-300 bg-white py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-100"
+                >
+                  Démarrer l&apos;essai gratuit
+                </Link>
+              </div>
+
             </div>
           </div>
         </section>
       </main>
 
       <footer className="border-t border-gray-100 py-8 text-center text-sm text-gray-400">
-        © {new Date().getFullYear()} NoteThéra · Conçu pour les thérapeutes francophones
+        <p>© {new Date().getFullYear()} NoteThéra · Conçu pour les thérapeutes francophones</p>
+        <div className="mt-2 flex justify-center gap-4">
+          <Link href="/cgv" className="hover:text-gray-600">CGV &amp; Mentions légales</Link>
+          <Link href="/confidentialite" className="hover:text-gray-600">Politique de confidentialité</Link>
+        </div>
       </footer>
     </div>
   )

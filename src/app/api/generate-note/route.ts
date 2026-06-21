@@ -32,6 +32,8 @@ Objectifs, sujets à approfondir ou tâches à proposer pour la prochaine rencon
 
 Utilise « le patient » ou « la patiente » (jamais de noms propres). Rédige en français, de façon concise et objective, conforme aux pratiques cliniques.`
 
+const SOLO_MONTHLY_LIMIT = 15
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -42,6 +44,34 @@ export async function POST(request: NextRequest) {
 
   if (!noteId || !transcript) {
     return NextResponse.json({ error: 'Missing noteId or transcript' }, { status: 400 })
+  }
+
+  // Check Solo plan monthly limit
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('subscription_plan')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.subscription_plan === 'solo') {
+    const startOfMonth = new Date()
+    startOfMonth.setUTCDate(1)
+    startOfMonth.setUTCHours(0, 0, 0, 0)
+
+    const { count: monthlyCount } = await supabase
+      .from('session_notes')
+      .select('*', { count: 'exact', head: true })
+      .eq('therapist_id', user.id)
+      .not('note_content', 'is', null)
+      .gte('created_at', startOfMonth.toISOString())
+
+    if ((monthlyCount ?? 0) >= SOLO_MONTHLY_LIMIT) {
+      return NextResponse.json({
+        error: 'Limite mensuelle atteinte',
+        message: `Vous avez atteint la limite de ${SOLO_MONTHLY_LIMIT} notes par mois du plan Solo. Passez au plan Pro pour des notes illimitées.`,
+        upgrade_required: true,
+      }, { status: 403 })
+    }
   }
 
   console.log('[generate-note] transcript:', transcript)

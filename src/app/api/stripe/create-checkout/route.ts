@@ -5,6 +5,17 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
+type PlanId = 'solo' | 'pro' | 'pro_annual'
+
+function getPriceId(planId: PlanId): string | undefined {
+  const map: Record<PlanId, string | undefined> = {
+    solo: process.env.STRIPE_PRICE_ID_SOLO,
+    pro: process.env.STRIPE_PRICE_ID_PRO,
+    pro_annual: process.env.STRIPE_PRICE_ID_PRO_ANNUAL,
+  }
+  return map[planId]
+}
+
 function getClientIp(req: NextRequest): string {
   return (
     req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
@@ -15,9 +26,14 @@ function getClientIp(req: NextRequest): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const priceId = process.env.STRIPE_PRICE_ID_PRO
+    const body = await request.json().catch(() => ({}))
+    const planId: PlanId = (['solo', 'pro', 'pro_annual'] as const).includes(body.planId)
+      ? body.planId
+      : 'pro'
+
+    const priceId = getPriceId(planId)
     if (!priceId) {
-      return NextResponse.json({ error: 'Stripe price not configured' }, { status: 500 })
+      return NextResponse.json({ error: 'Plan non configuré' }, { status: 500 })
     }
 
     const stripe = getStripe()
@@ -59,16 +75,13 @@ export async function POST(request: NextRequest) {
     const ip = getClientIp(request)
     let trialDays: number | undefined = 14
 
-    // Store IP on first checkout if not yet recorded
     if (!profile?.registration_ip && ip !== 'unknown') {
       await supabase.from('profiles').update({ registration_ip: ip }).eq('id', user.id)
     }
 
     if (profile?.trial_used_at) {
-      // This account already used a trial
       trialDays = undefined
     } else {
-      // Check if another account from the same IP or fingerprint already used a trial
       const svc = createServiceClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -108,7 +121,7 @@ export async function POST(request: NextRequest) {
       cancel_url: `${baseUrl}/billing`,
       subscription_data: {
         ...(trialDays ? { trial_period_days: trialDays } : {}),
-        metadata: { supabase_user_id: user.id },
+        metadata: { supabase_user_id: user.id, plan: planId },
       },
     })
 

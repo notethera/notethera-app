@@ -3,7 +3,16 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 
-export function CheckoutButton() {
+type PlanId = 'solo' | 'pro' | 'pro_annual'
+
+interface CheckoutButtonProps {
+  planId: PlanId
+  label: string
+  variant?: 'primary' | 'secondary'
+  className?: string
+}
+
+export function CheckoutButton({ planId, label, variant = 'primary', className }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -11,7 +20,11 @@ export function CheckoutButton() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/stripe/create-checkout', { method: 'POST' })
+      const res = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId }),
+      })
       const data = await res.json()
       if (data.url) {
         window.location.href = data.url
@@ -27,12 +40,10 @@ export function CheckoutButton() {
 
   return (
     <div>
-      <Button onClick={handleClick} loading={loading} className="w-full">
-        S&apos;abonner – 49 €/mois
+      <Button onClick={handleClick} loading={loading} variant={variant} className={className ?? 'w-full'}>
+        {label}
       </Button>
-      <p className="mt-2 text-center text-xs text-gray-500">
-        {error ? <span className="text-red-600">{error}</span> : '14 jours gratuits · Annulation à tout moment'}
-      </p>
+      {error && <p className="mt-2 text-center text-xs text-red-600">{error}</p>}
     </div>
   )
 }
