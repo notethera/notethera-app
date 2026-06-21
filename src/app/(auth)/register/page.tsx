@@ -62,11 +62,20 @@ function RegisterForm() {
 
     if (error) {
       setError(error.message)
-    } else if (data.session) {
-      router.push('/dashboard')
-      router.refresh()
     } else {
-      setEmailSent(true)
+      // Fire-and-forget: the welcome email isn't critical to the signup flow
+      fetch('/api/welcome-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).catch(() => {})
+
+      if (data.session) {
+        router.push('/dashboard')
+        router.refresh()
+      } else {
+        setEmailSent(true)
+      }
     }
   }
 
